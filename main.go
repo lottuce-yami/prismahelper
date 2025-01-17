@@ -1,49 +1,87 @@
 package main
 
 import (
+	"flag"
+	"fmt"
+	"io"
+	"io/fs"
 	"log"
 	"os"
-	"flag"
 	"path/filepath"
-	"io/fs"
 )
 
 func main() {
-	inst_mc_dir := os.Getenv("INST_MC_DIR")
-	var source_dir string
-	dest_dir := "./screenshots"
+	instMCDir := os.Getenv("INST_MC_DIR")
+	var sourceDir string
+	destDir := "./screenshots"
 
-	if inst_mc_dir != "" {
-		source_dir = filepath.Join(inst_mc_dir, "screenshots") 
+	if instMCDir != "" {
+		sourceDir = filepath.Join(instMCDir, "screenshots")
 	}
-	
-	flag.StringVar(&source_dir, "from", source_dir, "Instance screenshots directory")
-	flag.StringVar(&dest_dir, "to", dest_dir, "Destination directory for the screenshots")
+
+	flag.StringVar(&sourceDir, "from", sourceDir, "Instance screenshots directory")
+	flag.StringVar(&destDir, "to", destDir, "Destination directory for the screenshots")
 	flag.Parse()
 
-	if source_dir == "" {
+	if sourceDir == "" {
 		log.Fatal("Instance screenshots directory is not specified.")
 	}
 
-	filepath.WalkDir(source_dir, func(path string, d fs.DirEntry, err error) error {
+	sameVolume := filepath.VolumeName(sourceDir) == filepath.VolumeName(destDir)
+
+	filepath.WalkDir(sourceDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			log.Printf("Encountered an error while accesing %v.\n", path)
+			err := fmt.Errorf("failed to access %v", path)
+			log.Printf("An error occured while accesing source directory: %v", err)
 			return filepath.SkipDir
 		}
-	
+
 		if d.IsDir() {
 			return nil
 		}
 
-		dest := filepath.Join(dest_dir, d.Name())
+		dest := filepath.Join(destDir, d.Name())
 
-		err = os.Rename(path, dest)
+		if sameVolume {
+			err = os.Rename(path, dest)
+		} else {
+			err = move(path, dest)
+		}
+
 		if err != nil {
-			log.Printf("Encountered an error while moving %v to %v.\n", path, dest)
+			err := fmt.Errorf("failed to move %v to %v", path, dest)
+			log.Printf("An error occured while moving files: %v", err)
 			return nil
 		}
 
 		log.Printf("Moved %v to %v.\n", path, dest)
 		return nil
 	})
+}
+
+func move(src string, dest string) error {
+	inputFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("failed to open source file: %v", err)
+	}
+	defer inputFile.Close()
+
+	outputFile, err := os.Create(dest)
+	if err != nil {
+		return fmt.Errorf("failed to open destination file: %v", err)
+	}
+	defer outputFile.Close()
+
+	_, err = io.Copy(outputFile, inputFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy: %v", err)
+	}
+
+	inputFile.Close()
+
+	err = os.Remove(src)
+	if err != nil {
+		return fmt.Errorf("failed to remove source file: %v", err)
+	}
+	return nil
 }
