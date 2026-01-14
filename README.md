@@ -12,9 +12,17 @@ Root.
 3. Open your launcher's Settings -> Custom Commands and put the downloaded executable filename in the Post-exit command
 field.
 
-Now every time you exit your instance, prismahelper will move screenshots from the instance to a common directory in the
-launcher root.
+Now every time you exit your instance, prismahelper will move screenshots from the instance to a common screenshots
+directory in the launcher root.
+
+## Configuration
+
+You can use the following command line flags:
+
+`--from {path}` - directory FROM which the files will be moved. Default: `INST_MC_DIR` environment variable.
+
+`--to {path}` - directory TO which the files will be moved. Default: `screenshots` directory beside the executable file.
 
 ## Building
 
-Make sure you have Go 1.23.4 installed and run `go build`.
+Make sure you have Go installed and run `go build`.
