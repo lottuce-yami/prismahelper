@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	log.Printf("Started prismahelper")
+	log.Print("Started prismahelper v2.0")
 
 	var sourceDir, destDir string
 
@@ -62,9 +62,12 @@ func main() {
 		log.Fatalf("Failed to make directories for the destination %v: %v", destAbs, err)
 	}
 
+	hadErrors := false
+
 	filepath.WalkDir(sourceAbs, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			log.Printf("Failed to access %v: %v", path, err)
+			log.Printf("ERROR: Failed to access %v: %v", path, err)
+			hadErrors = true
 			return nil
 		}
 
@@ -77,13 +80,20 @@ func main() {
 
 		err = safeMove(path, dest)
 		if err != nil {
-			log.Fatalf("Failed to move %v -> %v: %v", path, dest, err)
+			log.Printf("ERROR: Failed to move %v -> %v: %v", path, dest, err)
+			hadErrors = true
 			return nil
 		}
 
 		log.Printf("Moved %v -> %v", path, dest)
 		return nil
 	})
+
+	if hadErrors {
+    	log.Fatal("One or more errors occured! Check logs above")
+	}
+
+	log.Print("Finished prismahelper")
 }
 
 func safeMove(source, dest string) error {
