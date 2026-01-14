@@ -13,20 +13,35 @@ import (
 )
 
 func main() {
-	instMCDir := os.Getenv("INST_MC_DIR")
-	var sourceDir string
-	destDir := "./screenshots"
+	log.Printf("Started prismahelper")
 
-	if instMCDir != "" {
-		sourceDir = filepath.Join(instMCDir, "screenshots")
-	}
+	var sourceDir, destDir string
 
 	flag.StringVar(&sourceDir, "from", sourceDir, "Instance screenshots directory")
 	flag.StringVar(&destDir, "to", destDir, "Destination directory for the screenshots")
 	flag.Parse()
 
 	if sourceDir == "" {
-		log.Fatal("Instance screenshots directory is not specified.")
+		log.Printf("Source directory not specified, getting default value...")
+
+		instMCDir := os.Getenv("INST_MC_DIR")
+		if instMCDir == "" {
+			log.Fatalf("Failed to get default source directory: environment variable INST_MC_DIR has no value")
+		}
+
+		sourceDir = filepath.Join(instMCDir, "screenshots")
+	}
+
+	if destDir == "" {
+		log.Printf("Destination directory not specified, getting default value...")
+
+		execFile, err := os.Executable()
+		if err != nil {
+			log.Fatalf("Failed to get default destination directory: failed to get path of executable file: %v", err)
+		}
+
+		execDir := filepath.Dir(execFile)
+		destDir = filepath.Join(execDir, "screenshots")
 	}
 
 	sourceAbs, err := filepath.Abs(sourceDir)
@@ -38,6 +53,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get absolute path of destination directory %v: %v", destDir, err)
 	}
+
+	log.Printf("Source directory: %v", sourceAbs)
+	log.Printf("Destination directory: %v", destAbs)
 
 	err = os.MkdirAll(destAbs, 0755)
 	if err != nil {
